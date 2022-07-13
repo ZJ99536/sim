@@ -103,7 +103,7 @@ class QuadControlSim:
 
     def rate_controller(self,cmd):
         kp_p = 0.016 
-        kp_q = 0.016*100
+        kp_q = 0.016*10
         kp_r = 0.028 
         error = cmd - self.quad_states[self.pointer,9:12]
         return np.array([kp_p*error[0],kp_q*error[1],kp_r*error[2]])
