@@ -139,12 +139,12 @@ class QuadControlSim:
                 
         #j = np.matrix((self.ades -self.lastades) / self.sim_step /10000)
 
-        j = np.matrix(self.ades-(v2-v1)/self.sim_step)
+        j = np.matrix(self.ades-(v2-v1)/self.sim_step)*100
 
         wx = -yb*j.T/cmd
         wy = np.dot(xb,j.T)/cmd
 
-        #print(wy)
+        print(wy)
 
         psi = self.quad_states[self.pointer,8]
         psi0 = self.quad_states[self.pointer-1,8]
@@ -171,7 +171,7 @@ class QuadControlSim:
         #print(error)
         ades = np.array([kp_vx*error[0],kp_vy*error[1],kp_vz*error[2]]) - self.g*np.array([0,0,1])
         a = ades
-        # print(ades)
+        #print(ades)
 
         # if self.pointer:
         #     a = self.quad_states[self.pointer, 3:6] - self.quad_states[self.pointer-1, 3:6]
@@ -211,7 +211,7 @@ class QuadControlSim:
         T = ezz[0]*ades[0] + ezz[1]*ades[1] + ezz[2]*ades[2]
         self.ades = ades
         #print(xb)
-        print(T)
+        #print(T)
         #return np.array([kp_vy*error[1],kp_vx*error[0]]), T
         return xb, yb, zb, T
 
