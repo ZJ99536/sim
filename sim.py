@@ -1,4 +1,5 @@
 from calendar import c
+from tkinter import W
 import numpy as np
 import matplotlib.pyplot as plt
 from math import sin,cos,tan
@@ -86,7 +87,8 @@ class QuadControlSim:
 
         ######################################################################################
         #dv_dt = np.array([.0,.0,self.g]) + R_E_B.transpose()@np.array([.0,.0,T])
-        dv_dt = np.array([.0,.0,self.g]) + self.R.T@np.array([.0,.0,T])  
+        dv_dt = np.array([.0,.0,self.g]) + self.R@np.array([.0,.0,T])  
+        #print(self.R@np.array([.0,.0,T]))
         #print(np.array([.0,.0,T]))      
         ######################################################################################
         dangle_dt = R_d_angle@np.array([p,q,r])
@@ -98,12 +100,13 @@ class QuadControlSim:
 
         w = np.array([[0, -r, q],[r, 0, -p],[-q, p, 0]])
         self.R = self.R + self.R@w*self.sim_step
+        #print(q)
 
         return dx
 
     def rate_controller(self,cmd):
         kp_p = 0.016 
-        kp_q = 0.016*10
+        kp_q = 0.016
         kp_r = 0.028 
         error = cmd - self.quad_states[self.pointer,9:12]
         return np.array([kp_p*error[0],kp_q*error[1],kp_r*error[2]])
@@ -136,12 +139,12 @@ class QuadControlSim:
                 
         #j = np.matrix((self.ades -self.lastades) / self.sim_step /10000)
 
-        j = np.matrix(self.ades-(v2-v1)/self.sim_step)*200
+        j = np.matrix(self.ades-(v2-v1)/self.sim_step)
 
         wx = -yb*j.T/cmd
         wy = np.dot(xb,j.T)/cmd
 
-        #print(xb)
+        #print(wy)
 
         psi = self.quad_states[self.pointer,8]
         psi0 = self.quad_states[self.pointer-1,8]
@@ -191,24 +194,24 @@ class QuadControlSim:
         # #print(xb)
         # zb = np.cross(xb,yb)
 
-        zb = ades/np.linalg.norm(ades)
+        zb = -ades/np.linalg.norm(ades)
         xb = np.cross(yc, zb)
         xb = xb/np.linalg.norm(xb)
         yb = np.cross(zb, xb)
 
-        print(xb)
+        #print(xb)
 
 
         #print(zb)
         #R = np.array([[cos(psi),sin(psi),0],[-sin(psi),cos(psi),0],[0,0,1]])
         #error = R@(cmd - self.quad_states[self.pointer,3:6])
         ezz = self.ez
-        #print(ades)
+        #print(ezz)
         #T = np.dot(zb, ades.T + self.g*np.array([[0,0,1]]).T)
         T = ezz[0]*ades[0] + ezz[1]*ades[1] + ezz[2]*ades[2]
         self.ades = ades
         #print(xb)
-        #print(zb)
+        print(T)
         #return np.array([kp_vy*error[1],kp_vx*error[0]]), T
         return xb, yb, zb, T
 
