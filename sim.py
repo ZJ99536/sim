@@ -96,20 +96,23 @@ class QuadControlSim:
 
         dq_dt = np.linalg.inv(self.I)@(M-np.cross(np.array([p,q,r]),self.I@np.array([p,q,r])))
 
+        #print(q)
+
         dx = np.concatenate((dp_dt, dv_dt, dangle_dt, dq_dt))
 
         w = np.array([[0, -r, q],[r, 0, -p],[-q, p, 0]])
         self.R = self.R + self.R@w*self.sim_step
-        #print(q)
+        # print(w)
+        #print(self.R)
 
         return dx
 
     def rate_controller(self,cmd):
-        kp_p = 0.016 
-        kp_q = 0.016
-        kp_r = 0.028 
+        kp_p = 0.16 
+        kp_q = 0.16
+        kp_r = 0.28 
         error = cmd - self.quad_states[self.pointer,9:12]
-        return np.array([kp_p*error[0],kp_q*error[1],kp_r*error[2]])
+        return np.array([kp_p*error[0],kp_q*error[1],kp_r*error[2]])*12
 
     def attitude_controller(self,xb, yb, zb, cmd):
         kp_phi = 2.5 
@@ -122,9 +125,9 @@ class QuadControlSim:
         q = self.quad_states[self.pointer-1,10]
         r = self.quad_states[self.pointer-1,11]
 
-        # xb = self.R[:,0].T
-        # yb = self.R[:,1].T
-        # zb = self.R[:,2].T
+        xb = self.R[:,0].T
+        yb = self.R[:,1].T
+        zb = self.R[:,2].T
         R = np.column_stack((xb.T, yb.T, zb.T))
         R = np.matrix(R)
         ezz = np.matrix(self.ez).T
@@ -139,10 +142,11 @@ class QuadControlSim:
                 
         #j = np.matrix((self.ades -self.lastades) / self.sim_step /10000)
 
-        j = np.matrix(self.ades-(v2-v1)/self.sim_step)*100
+        j = np.matrix(self.ades-(v2-v1)/self.sim_step)*200
+        #print(self.ades)
 
         wx = -yb*j.T/cmd
-        wy = np.dot(xb,j.T)/cmd
+        wy = xb*j.T/cmd
 
         print(wy)
 
@@ -194,7 +198,7 @@ class QuadControlSim:
         # #print(xb)
         # zb = np.cross(xb,yb)
 
-        zb = -ades/np.linalg.norm(ades)
+        zb = -ades/np.linalg.norm(ades) #######################
         xb = np.cross(yc, zb)
         xb = xb/np.linalg.norm(xb)
         yb = np.cross(zb, xb)
@@ -202,7 +206,7 @@ class QuadControlSim:
         #print(xb)
 
 
-        #print(zb)
+        # print(zb)
         #R = np.array([[cos(psi),sin(psi),0],[-sin(psi),cos(psi),0],[0,0,1]])
         #error = R@(cmd - self.quad_states[self.pointer,3:6])
         ezz = self.ez
@@ -210,7 +214,7 @@ class QuadControlSim:
         #T = np.dot(zb, ades.T + self.g*np.array([[0,0,1]]).T)
         T = ezz[0]*ades[0] + ezz[1]*ades[1] + ezz[2]*ades[2]
         self.ades = ades
-        #print(xb)
+        # print(xb)
         #print(T)
         #return np.array([kp_vy*error[1],kp_vx*error[0]]), T
         return xb, yb, zb, T
