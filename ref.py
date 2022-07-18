@@ -15,6 +15,13 @@ class DroneControlSim:
         self.position_cmd = np.zeros((int(self.sim_time/self.sim_step), 3)) 
         self.pointer = 0 
 
+        self.ax = np.array([0,0,0,0,0,0,0,1])
+        self.ay = np.array([0,0,0,0,0,0,0,0.5])
+        self.az = np.array([0,0,0,0,0,0,0,-1.5])
+        self.ts = 0
+        self.ez = np.array([0, 0, 1])
+        self.R = np.array([[1,0,0],[0,1,0],[0,0,1]])
+
         self.I_xx = 2.32e-3
         self.I_yy = 2.32e-3
         self.I_zz = 4.00e-3
@@ -52,14 +59,22 @@ class DroneControlSim:
 
         dx = np.concatenate((d_position,d_velocity,d_angle,d_q))
 
+        self.R = R_E_B
+        self.ez = self.R[:,2].T
+
         return dx 
 
     def run(self):
         for self.pointer in range(self.drone_states.shape[0]-1):
             self.time[self.pointer] = self.pointer * self.sim_step
             psi_cmd = 0.0
-            
-            self.position_cmd[self.pointer] = [1,0,-1.5]
+            self.ts = self.pointer * self.sim_step
+            ts = self.ts
+            t = np.array([ts**7, ts**6, ts**5, ts**4, ts**3, ts**2, ts, 1])
+            xdes = np.dot(t, self.ax)
+            ydes = np.dot(t, self.ay)
+            zdes = np.dot(t, self.az)
+            self.position_cmd[self.pointer] = [xdes, ydes, zdes]
             self.velocity_cmd[self.pointer] = self.position_controller(self.position_cmd[self.pointer])
 
             
@@ -75,6 +90,7 @@ class DroneControlSim:
             # thrust_cmd = -10 * self.m
 
             self.drone_states[self.pointer+1] = self.drone_states[self.pointer] + self.sim_step*self.drone_dynamics(thrust_cmd,M)
+            
         self.time[-1] = self.sim_time
 
 
@@ -97,11 +113,27 @@ class DroneControlSim:
         kp_vx = -0.2
         kp_vy = 0.2
         kp_vz = 2
+        ts = self.ts
+        tv = np.array([7*ts**6, 6*ts**5, 5*ts**4, 4*ts**3, 3*ts**2, 2*ts, 1, 0])
+        ta = np.array([42*ts**5, 30*ts**4, 20*ts**3, 12*ts**2, 6*ts, 2, 0, 0])
+        vref = np.zeros(3)
+        vref[0] = np.dot(tv, self.ax)
+        vref[1] = np.dot(tv, self.ay)
+        vref[2] = np.dot(tv, self.az)
+        error = (vref - self.drone_states[self.pointer,3:6])
+        aref = np.zeros(3)
+        aref[0] = np.dot(ta, self.ax)
+        aref[1] = np.dot(ta, self.ay)
+        aref[2] = np.dot(ta, self.az)
+        #print(error)
+        ades = cmd + np.array([kp_vx*error[0],kp_vy*error[1],kp_vz*error[2]]) + aref - self.g*np.array([0,0,1])
+        ezz = self.ez
+        T = ezz[0]*ades[0] + ezz[1]*ades[1] + ezz[2]*ades[2]
 
         psi = self.drone_states[self.pointer,8]
         R = np.array([[cos(psi),sin(psi),0],[-sin(psi),cos(psi),0],[0,0,1]])
         error = R@(cmd - self.drone_states[self.pointer,3:6])
-        return np.array([kp_vy*error[1],kp_vx*error[0]]),kp_vz*error[2]-self.g*self.m
+        return np.array([kp_vy*error[1],kp_vx*error[0]]), T
 
     def position_controller(self,cmd):
         kp_x = 0.7 
