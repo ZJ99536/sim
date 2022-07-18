@@ -215,7 +215,7 @@ class QuadControlSim:
         T = ezz[0]*ades[0] + ezz[1]*ades[1] + ezz[2]*ades[2]
         self.ades = ades
         # print(xb)
-        #print(T)
+        print(T)
         #return np.array([kp_vy*error[1],kp_vx*error[0]]), T
         return xb, yb, zb, T
 
