@@ -1,3 +1,4 @@
+from mimetypes import init
 from tkinter.ttk import tclobjs_to_py
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,9 +19,9 @@ class DroneControlSim:
         self.pointer = 0 
         self.T = 0
 
-        self.ax = np.array([0,0,0,0,0,0.01,-0.2,1])
-        self.ay = np.array([0,0,0,0,0,0,0.1,0.5])
-        self.az = np.array([0,0,0,0,-0.01,0.03,0,-1.5])
+        self.ax = None
+        self.ay = None
+        self.az = None
         self.ts = 0
         self.ez = np.array([0, 0, 1])
         self.R = np.array([[1,0,0],[0,1,0],[0,0,1]])
@@ -34,6 +35,7 @@ class DroneControlSim:
         self.I = np.array([[self.I_xx, .0,.0],[.0,self.I_yy,.0],[.0,.0,self.I_zz]])
 
         self.tss = None
+        self.tsa = None
         self.n_seg = 0
         self.n_order = 7
         self.Q = None
@@ -45,6 +47,10 @@ class DroneControlSim:
         self.polyx = None
         self.polyy = None
         self.polyz = None
+        self.tempi = 0
+        self.endx = 0
+        self.endy = 0
+        self.endz = 0
 
 
     def drone_dynamics(self,T,M):
@@ -72,7 +78,7 @@ class DroneControlSim:
 
         d_position = np.array([vx,vy,vz])
         d_velocity = np.array([.0,.0,self.g]) + R_E_B.transpose()@np.array([.0,.0,T])
-        print(d_velocity)
+        # print(d_velocity)
         d_angle = R_d_angle@np.array([p,q,r])
         d_q = np.linalg.inv(self.I)@(M-np.cross(np.array([p,q,r]),self.I@np.array([p,q,r])))
 
@@ -86,24 +92,41 @@ class DroneControlSim:
     def run(self):
         for self.pointer in range(self.drone_states.shape[0]-1):
             self.time[self.pointer] = self.pointer * self.sim_step
-            psi_cmd = 0.0
-            self.ts = self.pointer * self.sim_step
-            ts = self.ts
-            t = np.array([ts**7, ts**6, ts**5, ts**4, ts**3, ts**2, ts, 1])
-            xdes = np.dot(t, self.ax)
-            ydes = np.dot(t, self.ay)
-            zdes = np.dot(t, self.az)
-            self.position_cmd[self.pointer] = [xdes, ydes, zdes]
-            self.velocity_cmd[self.pointer] = self.position_controller(self.position_cmd[self.pointer])
-
+            # print(self.tempi)
             
+            if self.tempi < len(self.tsa)-1:
+                if self.time[self.pointer] > self.tsa[self.tempi+1]: 
+                    self.tempi = self.tempi + 1
+                if self.tempi < len(self.tsa)-1:
+                    self.ts = self.time[self.pointer] - self.tsa[self.tempi]
+                    ts = self.ts
+                    t = np.array([ts**7, ts**6, ts**5, ts**4, ts**3, ts**2, ts, 1])
+                    self.ax = self.polyx[0,8*self.tempi:8*(self.tempi+1)]
+                    self.ay = self.polyy[0,8*self.tempi:8*(self.tempi+1)]
+                    self.az = self.polyy[0,8*self.tempi:8*(self.tempi+1)]
+                    # print(self.polyx)
+                    xdes = np.dot(t, self.ax)
+                    ydes = np.dot(t, self.ay)
+                    zdes = np.dot(t, self.az)
+                else:
+                    self.ax = np.array([0,0,0,0,0,0,0,self.endx])
+                    self.ay = np.array([0,0,0,0,0,0,0,self.endy])
+                    self.az = np.array([0,0,0,0,0,0,0,self.endz])
+            else:
+                self.ax = np.array([0,0,0,0,0,0,0,self.endx])
+                self.ay = np.array([0,0,0,0,0,0,0,self.endy])
+                self.az = np.array([0,0,0,0,0,0,0,self.endz])
+
+
+            psi_cmd = 0.0
+    
+            self.position_cmd[self.pointer] = [xdes, ydes, zdes]
+            self.velocity_cmd[self.pointer] = self.position_controller(self.position_cmd[self.pointer])            
             # self.velocity_cmd[self.pointer] = [0.0,0.0,-1.0]
             pitch_roll_cmd,thrust_cmd = self.velocity_controller(self.velocity_cmd[self.pointer])
             self.attitude_cmd[self.pointer] = np.append(pitch_roll_cmd,psi_cmd)
-
             #self.attitude_cmd[self.pointer] = [1,0,0]
             self.rate_cmd[self.pointer] = self.attitude_controller(self.attitude_cmd[self.pointer])
-
             # self.rate_cmd[self.pointer] = [1,0,0]
             M = self.rate_controller(self.rate_cmd[self.pointer])
             # thrust_cmd = -10 * self.m
@@ -236,6 +259,9 @@ class DroneControlSim:
         ax1[3,0].set_ylabel('r[rad/s]')
 
     def plan(self, waypointx, waypointy, waypointz):
+        self.endx = waypointx[-1]
+        self.endy = waypointy[-1]
+        self.endz = waypointz[-1]
         self.n_seg = len(waypointx)-1
         self.init_ts()
         self.calQ()
@@ -251,6 +277,11 @@ class DroneControlSim:
     def init_ts(self):
         # to be ++++++++++++++++++
         self.tss = np.ones(self.n_seg)
+        self.tsa = np.zeros(self.n_seg+1)
+        for i in range(1, len(self.tsa)):
+            self.tsa[i] = self.tsa[i-1] + self.tss[i-1]
+
+        # print(self.tsa)
 
     def calQ(self):
         n_seg = self.n_seg
@@ -346,7 +377,8 @@ class DroneControlSim:
 
 if __name__ == "__main__":
     drone = DroneControlSim()
-    drone.plan([0,1.5],[1,2],[-1,-1.5])
+    drone.plan([0,1.5,3.5],[0,2,3],[0,-1.5,-2])
+    # drone.plan([0,1.5],[0,2],[0,-1.5])
     drone.run()
     drone.plot_states()
     plt.show()

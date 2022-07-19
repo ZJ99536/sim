@@ -30,8 +30,8 @@ class DroneControlSim:
         self.calC()
         self.calR()   
 
-        self.polyx = self.calcpoly(waypointx) 
-        self.polyy = self.calcpoly(waypointy)
+        # self.polyx = self.calcpoly(waypointx) 
+        # self.polyy = self.calcpoly(waypointy)
         self.polyz = self.calcpoly(waypointz)
 
 
@@ -129,32 +129,33 @@ class DroneControlSim:
         Ct = np.matrix(self.C).transpose()
         dm = np.matrix(d).transpose()
         polyx = np.array((M_inv * Ct * dm).transpose())
-        # print(polyx.shape)
+        print(polyx)
 
-        # t = np.zeros(int(2/0.02)+1)
-        # timex = np.zeros(int(2/0.02)+1)
-        # x = np.zeros(int(2/0.02)+1)
-        # for i in range(len(t)):
-        #     t[i] = i*0.02
-        #     timex[i] = i*0.02
-        # for i in range(len(t)):
-        #     if t[i] < 1:
-        #         tt = np.array([t[i]**7,t[i]**6,t[i]**5,t[i]**4,t[i]**3,t[i]**2,t[i],1])
-        #         poly = polyx[0,0:8]
-        #         x[i] = np.dot(tt,poly)
-        #     else:
-        #         t[i] = t[i] - 1
-        #         tt = np.array([t[i]**7,t[i]**6,t[i]**5,t[i]**4,t[i]**3,t[i]**2,t[i],1])
-        #         poly = polyx[0,8:16]
-        #         x[i] = np.dot(tt,poly)
-        # print(timex)
-        # plt.plot(timex,x,label='x')
-        # plt.show()
+        t = np.zeros(int(2/0.02)+1)
+        timex = np.zeros(int(2/0.02)+1)
+        x = np.zeros(int(2/0.02)+1)
+        for i in range(len(t)):
+            t[i] = i*0.02
+            timex[i] = i*0.02
+        for i in range(len(t)):
+            if t[i] < 1:
+                tt = np.array([t[i]**7,t[i]**6,t[i]**5,t[i]**4,t[i]**3,t[i]**2,t[i],1])
+                poly = polyx[0,0:8]
+                x[i] = np.dot(tt,poly)
+            else:
+                t[i] = t[i] - 1
+                tt = np.array([t[i]**7,t[i]**6,t[i]**5,t[i]**4,t[i]**3,t[i]**2,t[i],1])
+                poly = polyx[0,8:16]
+                x[i] = np.dot(tt,poly)
+        print(timex)
+        plt.plot(timex,x,label='x')
+        plt.show()
         return polyx
 
     
 
 if __name__ == "__main__":
     drone = DroneControlSim()
-    drone.plan([0,1.5,2],[1,2],[-1,-1.5])
+    # drone.plan([0,1.5,2],[1,2],[-1,-1.5])
+    drone.plan([0,1.5,1],[0,2],[0,-1.5,-2])
     
