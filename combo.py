@@ -100,6 +100,7 @@ class DroneControlSim:
                 if self.tempi < len(self.tsa)-1:
                     self.ts = self.time[self.pointer] - self.tsa[self.tempi]
                     ts = self.ts
+                    # print(ts)
                     t = np.array([ts**7, ts**6, ts**5, ts**4, ts**3, ts**2, ts, 1])
                     self.ax = self.polyx[0,8*self.tempi:8*(self.tempi+1)]
                     self.ay = self.polyy[0,8*self.tempi:8*(self.tempi+1)]
@@ -145,9 +146,9 @@ class DroneControlSim:
         return np.array([kp_p*error[0],kp_q*error[1],kp_r*error[2]])
 
     def attitude_controller(self,cmd):
-        kp_phi = 2.5 
-        kp_theta = 2.5 
-        kp_psi = 2.5
+        kp_phi = 3
+        kp_theta = 3
+        kp_psi = 3
         psi = self.drone_states[self.pointer,8]
         yc = np.matrix([-sin(psi),cos(psi),0])
 
@@ -164,13 +165,15 @@ class DroneControlSim:
         j[0] = xj
         j[1] = yj
         j[2] = zj
-
+        # print(j)
         
         wx = -np.dot(yb,j)/self.T
         wy = np.dot(xb,j)/self.T
         wz = wy*np.dot(yc,zb)/np.linalg.norm(np.cross(yc,zb))
+        # print(self.T)
 
         error = cmd - self.drone_states[self.pointer,6:9]
+        # print(np.array([kp_phi*error[0]+wx,kp_theta*error[1]+wy,kp_psi*error[2]+wz]))
         return np.array([kp_phi*error[0]+wx,kp_theta*error[1]+wy,kp_psi*error[2]+wz])
 
     def velocity_controller(self,cmd):
@@ -184,12 +187,14 @@ class DroneControlSim:
         vref[0] = np.dot(tv, self.ax)
         vref[1] = np.dot(tv, self.ay)
         vref[2] = np.dot(tv, self.az)
+        # print(vref)
         error = (vref - self.drone_states[self.pointer,3:6])
         aref = np.zeros(3)
         aref[0] = np.dot(ta, self.ax)
         aref[1] = np.dot(ta, self.ay)
         aref[2] = np.dot(ta, self.az)
         #print(error)
+        # print(aref)
         ades = cmd + np.array([kp_vx*error[0],kp_vy*error[1],kp_vz*error[2]]) + aref - self.g*np.array([0,0,1])
         ezz = self.ez
         T = ezz[0]*ades[0] + ezz[1]*ades[1] + ezz[2]*ades[2]
@@ -377,8 +382,8 @@ class DroneControlSim:
 
 if __name__ == "__main__":
     drone = DroneControlSim()
-    drone.plan([0,1.5,3.5],[0,2,3],[0,-1.5,-2])
-    # drone.plan([0,1.5],[0,2],[0,-1.5])
+    drone.plan([0,0.01,0.02],[0,-0.015,-0.02],[0,-0.03,-0.06])
+    # drone.plan([0,0.3],[0,0.2],[0,-0.2])
     drone.run()
     drone.plot_states()
     plt.show()

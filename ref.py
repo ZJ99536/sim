@@ -6,7 +6,7 @@ from math import sin,cos,tan
 
 class DroneControlSim:
     def __init__(self):
-        self.sim_time = 10.2
+        self.sim_time = 13
         self.sim_step = 0.002
         self.drone_states = np.zeros((int(self.sim_time/self.sim_step), 12))
         self.time= np.zeros((int(self.sim_time/self.sim_step),))
@@ -31,6 +31,8 @@ class DroneControlSim:
         self.m = 0.5
         self.g = 9.8
         self.I = np.array([[self.I_xx, .0,.0],[.0,self.I_yy,.0],[.0,.0,self.I_zz]])
+
+        self.flag = 1
         
 
 
@@ -80,6 +82,27 @@ class DroneControlSim:
             xdes = np.dot(t, self.ax)
             ydes = np.dot(t, self.ay)
             zdes = np.dot(t, self.az)
+            if self.time[self.pointer]>8 and self.flag==1:
+                ts = 8
+                t = np.array([ts**7, ts**6, ts**5, ts**4, ts**3, ts**2, ts, 1])
+                xdes = np.dot(t, self.ax)
+                ydes = np.dot(t, self.ay)
+                zdes = np.dot(t, self.az)
+                self.ax = np.array([0,0,0,0,0,0,0,xdes])
+                self.ay = np.array([0,0,0,0,0,0,0,ydes])
+                self.az = np.array([0,0,0,0,0,0,0,zdes])
+                self.flag = 0
+            elif self.time[self.pointer]>8 and self.flag==0:
+                ts = 8
+                t = np.array([ts**7, ts**6, ts**5, ts**4, ts**3, ts**2, ts, 1])
+                self.ax = np.array([0,0,0,0,0,0,0,xdes])
+                self.ay = np.array([0,0,0,0,0,0,0,ydes])
+                self.az = np.array([0,0,0,0,0,0,0,zdes])
+                xdes = np.dot(t, self.ax)
+                ydes = np.dot(t, self.ay)
+                zdes = np.dot(t, self.az)
+                            
+            
             self.position_cmd[self.pointer] = [xdes, ydes, zdes]
             self.velocity_cmd[self.pointer] = self.position_controller(self.position_cmd[self.pointer])
 
