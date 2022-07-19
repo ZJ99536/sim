@@ -7,7 +7,7 @@ from math import sin,cos,tan
 
 class QuadControlSim:
     def __init__(self):
-        self.sim_time = 10
+        self.sim_time = 10.2
         self.sim_step = 0.002
         self.sim_size = int(self.sim_time/self.sim_step)
         self.pointer = 0 
