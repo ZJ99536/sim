@@ -31,6 +31,7 @@ class DroneControlSim:
         self.m = 0.5
         self.g = 9.8
         self.I = np.array([[self.I_xx, .0,.0],[.0,self.I_yy,.0],[.0,.0,self.I_zz]])
+        
 
 
     def drone_dynamics(self,T,M):
@@ -220,6 +221,7 @@ class DroneControlSim:
         ax1[3,2].plot(self.time,self.drone_states[:,11])
         ax1[3,2].plot(self.time,self.rate_cmd[:,2])
         ax1[3,0].set_ylabel('r[rad/s]')
+        
 
 if __name__ == "__main__":
     drone = DroneControlSim()

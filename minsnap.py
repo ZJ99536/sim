@@ -5,21 +5,17 @@ import matplotlib.pyplot as plt
 from math import sin,cos,tan
 from math import factorial as fact
 
-from torch import QInt32Storage
 
 
 class DroneControlSim:
     def __init__(self):
-        self.xa = None
-        self.xb = None
-        self.xc = None
         self.tss = None
         self.n_seg = 0
         self.n_order = 7
         self.Q = None
         self.M = None
         self.C = None
-        self.R = None
+        self.Rp = None
         self.Rpp = None
         self.Rfp = None
         self.polyx = None
@@ -102,11 +98,11 @@ class DroneControlSim:
         C = np.matrix(self.C)
         Q = np.matrix(self.Q)
         Ct = np.matrix(self.C.T)
-        self.R = np.array(C * M_inv_T * Q * M_inv * Ct)
-        # print(self.R)
+        self.Rp = np.array(C * M_inv_T * Q * M_inv * Ct)
+        # print(self.Rp)
 
-        self.Rpp = self.R[n_seg+7:4*n_seg+4,n_seg+7:4*n_seg+4]
-        self.Rfp = self.R[0:n_seg+7,n_seg+7:4*n_seg+4]
+        self.Rpp = self.Rp[n_seg+7:4*n_seg+4,n_seg+7:4*n_seg+4]
+        self.Rfp = self.Rp[0:n_seg+7,n_seg+7:4*n_seg+4]
         # print(self.Rpp)
         # print(self.Rfp)
 
