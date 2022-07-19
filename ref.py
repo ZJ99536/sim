@@ -1,3 +1,4 @@
+from tkinter.ttk import tclobjs_to_py
 import numpy as np
 import matplotlib.pyplot as plt
 from math import sin,cos,tan
@@ -14,13 +15,15 @@ class DroneControlSim:
         self.velocity_cmd = np.zeros((int(self.sim_time/self.sim_step), 3)) 
         self.position_cmd = np.zeros((int(self.sim_time/self.sim_step), 3)) 
         self.pointer = 0 
+        self.T = 0
 
-        self.ax = np.array([0,0,0,0,0,0,0,1])
-        self.ay = np.array([0,0,0,0,0,0,0,0.5])
-        self.az = np.array([0,0,0,0,0,0,0,-1.5])
+        self.ax = np.array([0,0,0,0,0,0.01,-0.2,1])
+        self.ay = np.array([0,0,0,0,0,0,0.1,0.5])
+        self.az = np.array([0,0,0,0,-0.01,0.03,0,-1.5])
         self.ts = 0
         self.ez = np.array([0, 0, 1])
         self.R = np.array([[1,0,0],[0,1,0],[0,0,1]])
+        self.ades = 0
 
         self.I_xx = 2.32e-3
         self.I_yy = 2.32e-3
@@ -28,6 +31,7 @@ class DroneControlSim:
         self.m = 0.5
         self.g = 9.8
         self.I = np.array([[self.I_xx, .0,.0],[.0,self.I_yy,.0],[.0,.0,self.I_zz]])
+
 
     def drone_dynamics(self,T,M):
         x = self.drone_states[self.pointer,0]
@@ -53,7 +57,8 @@ class DroneControlSim:
                           [cos(phi)*sin(theta)*cos(psi)+sin(phi)*sin(psi),cos(phi)*sin(theta)*sin(psi)-sin(phi)*cos(psi),cos(phi)*cos(theta)]])
 
         d_position = np.array([vx,vy,vz])
-        d_velocity = np.array([.0,.0,self.g]) + R_E_B.transpose()@np.array([.0,.0,T])/self.m
+        d_velocity = np.array([.0,.0,self.g]) + R_E_B.transpose()@np.array([.0,.0,T])
+        print(d_velocity)
         d_angle = R_d_angle@np.array([p,q,r])
         d_q = np.linalg.inv(self.I)@(M-np.cross(np.array([p,q,r]),self.I@np.array([p,q,r])))
 
@@ -106,8 +111,30 @@ class DroneControlSim:
         kp_phi = 2.5 
         kp_theta = 2.5 
         kp_psi = 2.5
+        psi = self.drone_states[self.pointer,8]
+        yc = np.matrix([-sin(psi),cos(psi),0])
+
+        xb = self.R[:,0].T
+        yb = self.R[:,1].T
+        zb = self.R[:,2].T
+
+        ts = self.ts
+        tj = np.array([210*ts**4, 120*ts**3, 60*ts**2, 24*ts, 6, 0, 0, 0])
+        xj = np.dot(tj, self.ax)
+        yj = np.dot(tj, self.ay)
+        zj = np.dot(tj, self.az)
+        j = np.zeros(3)
+        j[0] = xj
+        j[1] = yj
+        j[2] = zj
+
+        
+        wx = -np.dot(yb,j)/self.T
+        wy = np.dot(xb,j)/self.T
+        wz = wy*np.dot(yc,zb)/np.linalg.norm(np.cross(yc,zb))
+
         error = cmd - self.drone_states[self.pointer,6:9]
-        return np.array([kp_phi*error[0],kp_theta*error[1],kp_psi*error[2]])
+        return np.array([kp_phi*error[0]+wx,kp_theta*error[1]+wy,kp_psi*error[2]+wz])
 
     def velocity_controller(self,cmd):
         kp_vx = -0.2
@@ -129,6 +156,9 @@ class DroneControlSim:
         ades = cmd + np.array([kp_vx*error[0],kp_vy*error[1],kp_vz*error[2]]) + aref - self.g*np.array([0,0,1])
         ezz = self.ez
         T = ezz[0]*ades[0] + ezz[1]*ades[1] + ezz[2]*ades[2]
+        self.ades = ades
+        self.T = T
+        # print(T)
 
         psi = self.drone_states[self.pointer,8]
         R = np.array([[cos(psi),sin(psi),0],[-sin(psi),cos(psi),0],[0,0,1]])
