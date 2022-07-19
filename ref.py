@@ -6,7 +6,7 @@ from math import sin,cos,tan
 
 class DroneControlSim:
     def __init__(self):
-        self.sim_time = 10
+        self.sim_time = 10.2
         self.sim_step = 0.002
         self.drone_states = np.zeros((int(self.sim_time/self.sim_step), 12))
         self.time= np.zeros((int(self.sim_time/self.sim_step),))
