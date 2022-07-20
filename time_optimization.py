@@ -8,7 +8,7 @@ from math import factorial as fact
 
 class DroneControlSim:
     def __init__(self):
-        self.sim_time = 10.2
+        self.sim_time = 9
         self.sim_step = 0.002
         self.drone_states = np.zeros((int(self.sim_time/self.sim_step), 12))
         self.time= np.zeros((int(self.sim_time/self.sim_step),))
@@ -51,6 +51,11 @@ class DroneControlSim:
         self.endx = 0
         self.endy = 0
         self.endz = 0
+
+        self.vxmax = 0.2
+        self.vymax = 0.2
+        self.vzmax = 0.2
+
 
 
     def drone_dynamics(self,T,M):
@@ -267,8 +272,9 @@ class DroneControlSim:
         self.endx = waypointx[-1]
         self.endy = waypointy[-1]
         self.endz = waypointz[-1]
+
         self.n_seg = len(waypointx)-1
-        self.init_ts()
+        self.init_ts(waypointx, waypointy, waypointz)
         self.calQ()
         self.calM()
         self.calC()
@@ -279,9 +285,14 @@ class DroneControlSim:
         self.polyz = self.calcpoly(waypointz)
 
 
-    def init_ts(self):
+    def init_ts(self, waypointx, waypointy, waypointz):
         # to be ++++++++++++++++++
         self.tss = np.ones(self.n_seg)
+        for i in range(len(self.tss)):
+            t1 = abs(waypointx[i+1]-waypointx[i]) / self.vxmax
+            t2 = abs(waypointy[i+1]-waypointy[i]) / self.vymax
+            t3 = abs(waypointz[i+1]-waypointz[i]) / self.vzmax
+            self.tss[i] = max(t1,max(t2,t3))
         self.tsa = np.zeros(self.n_seg+1)
         for i in range(1, len(self.tsa)):
             self.tsa[i] = self.tsa[i-1] + self.tss[i-1]
@@ -382,7 +393,7 @@ class DroneControlSim:
 
 if __name__ == "__main__":
     drone = DroneControlSim()
-    drone.plan([0,0.01,0.02],[0,-0.015,-0.02],[0,-0.03,-0.06])
+    drone.plan([0,0.2,0.3],[0,-0.015,-0.02],[0,-0.03,-0.06])
     # drone.plan([0,0.3],[0,0.2],[0,-0.2])
     drone.run()
     drone.plot_states()
