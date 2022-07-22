@@ -8,7 +8,7 @@ from math import factorial as fact
 
 class DroneControlSim:
     def __init__(self):
-        self.sim_time = 9
+        self.sim_time = 10
         self.sim_step = 0.002
         self.drone_states = np.zeros((int(self.sim_time/self.sim_step), 12))
         self.time= np.zeros((int(self.sim_time/self.sim_step),))
@@ -52,9 +52,9 @@ class DroneControlSim:
         self.endy = 0
         self.endz = 0
 
-        self.vxmax = 0.2
-        self.vymax = 0.2
-        self.vzmax = 0.2
+        self.vxmax = 10
+        self.vymax = 10
+        self.vzmax = 10
 
 
 
@@ -89,7 +89,7 @@ class DroneControlSim:
 
         dx = np.concatenate((d_position,d_velocity,d_angle,d_q))
 
-        self.R = R_E_B
+        self.R = R_E_B.T
         self.ez = self.R[:,2].T
 
         return dx 
@@ -97,8 +97,8 @@ class DroneControlSim:
     def run(self):
         for self.pointer in range(self.drone_states.shape[0]-1):
             self.time[self.pointer] = self.pointer * self.sim_step
-            # print(self.tempi)
-            
+            # print(self.tsa)
+        
             if self.tempi < len(self.tsa)-1:
                 if self.time[self.pointer] > self.tsa[self.tempi+1]: 
                     self.tempi = self.tempi + 1
@@ -109,7 +109,7 @@ class DroneControlSim:
                     t = np.array([ts**7, ts**6, ts**5, ts**4, ts**3, ts**2, ts, 1])
                     self.ax = self.polyx[0,8*self.tempi:8*(self.tempi+1)]
                     self.ay = self.polyy[0,8*self.tempi:8*(self.tempi+1)]
-                    self.az = self.polyy[0,8*self.tempi:8*(self.tempi+1)]
+                    self.az = self.polyz[0,8*self.tempi:8*(self.tempi+1)]
                     # print(self.polyx)
                     xdes = np.dot(t, self.ax)
                     ydes = np.dot(t, self.ay)
@@ -127,6 +127,7 @@ class DroneControlSim:
             psi_cmd = 0.0
     
             self.position_cmd[self.pointer] = [xdes, ydes, zdes]
+            # print(xdes, ydes, zdes)
             self.velocity_cmd[self.pointer] = self.position_controller(self.position_cmd[self.pointer])            
             # self.velocity_cmd[self.pointer] = [0.0,0.0,-1.0]
             pitch_roll_cmd,thrust_cmd = self.velocity_controller(self.velocity_cmd[self.pointer])
@@ -144,18 +145,18 @@ class DroneControlSim:
 
 
     def rate_controller(self,cmd):
-        kp_p = 0.016 
-        kp_q = 0.016 
-        kp_r = 0.028 
+        kp_p = 0.016*2 
+        kp_q = 0.016*2 
+        kp_r = 0.028*2 
         error = cmd - self.drone_states[self.pointer,9:12]
         return np.array([kp_p*error[0],kp_q*error[1],kp_r*error[2]])
 
     def attitude_controller(self,cmd):
-        kp_phi = 3
-        kp_theta = 3
-        kp_psi = 3
+        kp_phi = 3.5
+        kp_theta = 3.5
+        kp_psi = 3.5
         psi = self.drone_states[self.pointer,8]
-        yc = np.matrix([-sin(psi),cos(psi),0])
+        yc = np.array([-sin(psi),cos(psi),0])
 
         xb = self.R[:,0].T
         yb = self.R[:,1].T
@@ -171,20 +172,45 @@ class DroneControlSim:
         j[1] = yj
         j[2] = zj
         # print(j)
+        ta = np.array([42*ts**5, 30*ts**4, 20*ts**3, 12*ts**2, 6*ts, 2, 0, 0])
+        aref = np.zeros(3)
+        aref[0] = np.dot(ta, self.ax)
+        aref[1] = np.dot(ta, self.ay)
+        aref[2] = np.dot(ta, self.az)
+        alpha = aref - self.g*np.array([0,0,1])
+        xb = np.cross(alpha,yc)
+        # print(xb)
+        xb = xb / np.linalg.norm(xb)
+        yb = np.cross(xb,alpha)
+        yb = yb / np.linalg.norm(yb)
+        # xb = -xb
+        zb = np.cross(xb, yb)
+        # print(zb)
+
+        c = np.dot(zb, alpha)
+
+        # print(c*zb)
         
-        wx = -np.dot(yb,j)/self.T
-        wy = np.dot(xb,j)/self.T
+        wx = -np.dot(yb,j)/c
+        wy = np.dot(xb,j)/c
         wz = wy*np.dot(yc,zb)/np.linalg.norm(np.cross(yc,zb))
+        
+        # wx = -np.dot(yb,j)/self.T
+        # wy = np.dot(xb,j)/self.T
+        # wz = wy*np.dot(yc,zb)/np.linalg.norm(np.cross(yc,zb))
         # print(self.T)
 
         error = cmd - self.drone_states[self.pointer,6:9]
+        # print(error)
         # print(np.array([kp_phi*error[0]+wx,kp_theta*error[1]+wy,kp_psi*error[2]+wz]))
-        return np.array([kp_phi*error[0]+wx,kp_theta*error[1]+wy,kp_psi*error[2]+wz])
+        # return np.array([kp_phi*error[0]+wx,kp_theta*error[1]+wy,kp_psi*error[2]+wz])
+        return np.array([kp_phi*error[0],kp_theta*error[1],kp_psi*error[2]])+np.array([wx, wy, wz])
+
 
     def velocity_controller(self,cmd):
-        kp_vx = -0.2
-        kp_vy = 0.2
-        kp_vz = 2
+        kp_vx = -0.35
+        kp_vy = 0.35
+        kp_vz = 3.5
         ts = self.ts
         tv = np.array([7*ts**6, 6*ts**5, 5*ts**4, 4*ts**3, 3*ts**2, 2*ts, 1, 0])
         ta = np.array([42*ts**5, 30*ts**4, 20*ts**3, 12*ts**2, 6*ts, 2, 0, 0])
@@ -213,9 +239,9 @@ class DroneControlSim:
         return np.array([kp_vy*error[1],kp_vx*error[0]]), T
 
     def position_controller(self,cmd):
-        kp_x = 0.7 
+        kp_x = 0.7
         kp_y = 0.7 
-        kp_z = 0.7 
+        kp_z = 1.2 
 
         error = cmd - self.drone_states[self.pointer,0:3]
         return np.array([kp_x*error[0],kp_y*error[1],kp_z*error[2]])
@@ -272,6 +298,7 @@ class DroneControlSim:
         self.endx = waypointx[-1]
         self.endy = waypointy[-1]
         self.endz = waypointz[-1]
+        # print(self.endx, self.endy, self.endz)
 
         self.n_seg = len(waypointx)-1
         self.init_ts(waypointx, waypointy, waypointz)
@@ -283,6 +310,8 @@ class DroneControlSim:
         self.polyx = self.calcpoly(waypointx) 
         self.polyy = self.calcpoly(waypointy)
         self.polyz = self.calcpoly(waypointz)
+
+        # print(self.polyz)
 
 
     def init_ts(self, waypointx, waypointy, waypointz):
@@ -393,8 +422,10 @@ class DroneControlSim:
 
 if __name__ == "__main__":
     drone = DroneControlSim()
-    drone.plan([0,0.2,0.3],[0,-0.015,-0.02],[0,-0.03,-0.06])
-    # drone.plan([0,0.3],[0,0.2],[0,-0.2])
+    # drone.plan([0,2,3],[0,-1.5,-2],[0,-1,-2])
+    drone.plan([0,5,10],[0,10,5],[0,-5,-10])
+    # drone.plan([0,5],[0,10],[0,-5])
+
     drone.run()
     drone.plot_states()
     plt.show()
