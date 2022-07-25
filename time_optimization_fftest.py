@@ -441,7 +441,7 @@ class DroneControlSim:
 if __name__ == "__main__":
     drone = DroneControlSim()
     # drone.plan([0,5,10],[0,10,5],[0,-5,-10])
-    drone.plan([0,5],[0,10],[0,-5])
+    drone.plan([0,5],[0,10],[0,-10])
 
     drone.run()
     drone.plot_states()
