@@ -17,14 +17,14 @@ class DroneControlSim:
         self.pointer = 0 
         self.T = 0
 
-        # self.ax = np.array([0,0,0,0,0,0.01,-0.2,1])
-        self.ax = np.array([0,0,0,0,0,0,0,5])
+        self.ax = np.array([0,0,0,0,0,0.01,-0.2,1])
+        # self.ax = np.array([0,0,0,0,0,0,0,5])
         # self.ax = np.array([-8.383750e+00,  2.876125e+01, -3.352125e+01,  1.334375e+01,  0, 0, 0, 0])
-        # self.ay = np.array([0,0,0,0,0,0,0.1,0.5])
-        self.ay = np.array([0,0,0,0,0,0,0,5])
-        self.az = np.array([0,0,0,0,0,0,0,-5])
+        self.ay = np.array([0,0,0,0,0,0,0.1,0.5])
+        # self.ay = np.array([0,0,0,0,0,0,0,5])
+        # self.az = np.array([0,0,0,0,0,0,0,-5])
 
-        # self.az = np.array([0,0,0,0,-0.01,0.03,0,-1.5])
+        self.az = np.array([0,0,0,0,-0.01,0.03,0,-1.5])
         self.ts = 0
         self.ez = np.array([0, 0, 1])
         self.R = np.array([[1,0,0],[0,1,0],[0,0,1]])
@@ -72,7 +72,7 @@ class DroneControlSim:
 
         dx = np.concatenate((d_position,d_velocity,d_angle,d_q))
 
-        self.R = R_E_B
+        self.R = R_E_B.T
         self.ez = self.R[:,2].T
 
         return dx 
@@ -141,7 +141,7 @@ class DroneControlSim:
         kp_theta = 4 
         kp_psi = 4
         psi = self.drone_states[self.pointer,8]
-        yc = np.matrix([-sin(psi),cos(psi),0])
+        yc = np.array([-sin(psi),cos(psi),0])
 
         xb = self.R[:,0].T
         yb = self.R[:,1].T
@@ -156,11 +156,29 @@ class DroneControlSim:
         j[0] = xj
         j[1] = yj
         j[2] = zj
+        ta = np.array([42*ts**5, 30*ts**4, 20*ts**3, 12*ts**2, 6*ts, 2, 0, 0])
+        aref = np.zeros(3)
+        aref[0] = np.dot(ta, self.ax)
+        aref[1] = np.dot(ta, self.ay)
+        aref[2] = np.dot(ta, self.az)
+        alpha = aref - self.g*np.array([0,0,1])
+        xb = np.cross(alpha,yc)
+        # print(alpha)
+        xb = xb / np.linalg.norm(xb)
+        yb = np.cross(xb,alpha)
+        yb = yb / np.linalg.norm(yb)
+        # xb = -xb
+        zb = np.cross(xb, yb)
+        # print(alpha)
 
-        
-        wx = -np.dot(yb,j)/self.T
-        wy = np.dot(xb,j)/self.T
+        c = np.dot(zb, alpha)
+        wx = -np.dot(yb,j)/c
+        wy = np.dot(xb,j)/c
         wz = wy*np.dot(yc,zb)/np.linalg.norm(np.cross(yc,zb))
+        
+        # wx = -np.dot(yb,j)/self.T
+        # wy = np.dot(xb,j)/self.T
+        # wz = wy*np.dot(yc,zb)/np.linalg.norm(np.cross(yc,zb))
 
         error = cmd - self.drone_states[self.pointer,6:9]
         return np.array([kp_phi*error[0]+wx,kp_theta*error[1]+wy,kp_psi*error[2]+wz])

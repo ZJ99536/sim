@@ -157,5 +157,5 @@ class DroneControlSim:
 if __name__ == "__main__":
     drone = DroneControlSim()
     # drone.plan([0,1.5,2],[1,2],[-1,-1.5])
-    drone.plan([0,5,10],[0,2,5],[0,-15,-20])
+    drone.plan([0,5,10],[0,2,5],[0,-5,-10])
     

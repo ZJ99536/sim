@@ -8,7 +8,7 @@ from math import factorial as fact
 
 class DroneControlSim:
     def __init__(self):
-        self.sim_time = 10
+        self.sim_time = 15
         self.sim_step = 0.002
         self.drone_states = np.zeros((int(self.sim_time/self.sim_step), 12))
         self.time= np.zeros((int(self.sim_time/self.sim_step),))
@@ -52,9 +52,9 @@ class DroneControlSim:
         self.endy = 0
         self.endz = 0
 
-        self.vxmax = 10
-        self.vymax = 10
-        self.vzmax = 10
+        self.vxmax = 1.5
+        self.vymax = 1.5
+        self.vzmax = 1.5
 
 
 
@@ -145,22 +145,22 @@ class DroneControlSim:
 
 
     def rate_controller(self,cmd):
-        kp_p = 0.016*2 
-        kp_q = 0.016*2 
-        kp_r = 0.028*2 
+        kp_p = 1
+        kp_q = 1 
+        kp_r = 2 
         error = cmd - self.drone_states[self.pointer,9:12]
         return np.array([kp_p*error[0],kp_q*error[1],kp_r*error[2]])
 
     def attitude_controller(self,cmd):
-        kp_phi = 3.5
-        kp_theta = 3.5
-        kp_psi = 3.5
+        kp_phi = 3
+        kp_theta = 3
+        kp_psi = 3
         psi = self.drone_states[self.pointer,8]
         yc = np.array([-sin(psi),cos(psi),0])
 
-        xb = self.R[:,0].T
-        yb = self.R[:,1].T
-        zb = self.R[:,2].T
+        # xb = self.R[:,0].T
+        # yb = self.R[:,1].T
+        # zb = self.R[:,2].T
 
         ts = self.ts
         tj = np.array([210*ts**4, 120*ts**3, 60*ts**2, 24*ts, 6, 0, 0, 0])
@@ -201,16 +201,16 @@ class DroneControlSim:
         # print(self.T)
 
         error = cmd - self.drone_states[self.pointer,6:9]
-        # print(error)
+        # print(wx,wy,wz)
         # print(np.array([kp_phi*error[0]+wx,kp_theta*error[1]+wy,kp_psi*error[2]+wz]))
         # return np.array([kp_phi*error[0]+wx,kp_theta*error[1]+wy,kp_psi*error[2]+wz])
         return np.array([kp_phi*error[0],kp_theta*error[1],kp_psi*error[2]])+np.array([wx, wy, wz])
 
 
     def velocity_controller(self,cmd):
-        kp_vx = -0.35
-        kp_vy = 0.35
-        kp_vz = 3.5
+        kp_vx = -0.2
+        kp_vy = 0.2
+        kp_vz = 2
         ts = self.ts
         tv = np.array([7*ts**6, 6*ts**5, 5*ts**4, 4*ts**3, 3*ts**2, 2*ts, 1, 0])
         ta = np.array([42*ts**5, 30*ts**4, 20*ts**3, 12*ts**2, 6*ts, 2, 0, 0])
@@ -240,8 +240,8 @@ class DroneControlSim:
 
     def position_controller(self,cmd):
         kp_x = 0.7
-        kp_y = 0.7 
-        kp_z = 1.2 
+        kp_y = 0.7
+        kp_z = 0.7
 
         error = cmd - self.drone_states[self.pointer,0:3]
         return np.array([kp_x*error[0],kp_y*error[1],kp_z*error[2]])
@@ -423,8 +423,8 @@ class DroneControlSim:
 if __name__ == "__main__":
     drone = DroneControlSim()
     # drone.plan([0,2,3],[0,-1.5,-2],[0,-1,-2])
-    drone.plan([0,5,10],[0,10,5],[0,-5,-10])
-    # drone.plan([0,5],[0,10],[0,-5])
+    # drone.plan([0,5,10],[0,10,5],[0,-5,-10])
+    drone.plan([0,5],[0,10],[0,-5])
 
     drone.run()
     drone.plot_states()

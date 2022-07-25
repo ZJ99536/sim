@@ -18,7 +18,7 @@ class DroneControlSim:
         self.T = 0
 
         # self.ax = np.array([0,0,0,0,0,0.01,-0.2,1])
-        self.ax = np.array([0,0,0,0,0,0,0,5])
+        self.ax = np.array([0,0,0,0,0,0,0,6])
         # self.ax = np.array([-8.383750e+00,  2.876125e+01, -3.352125e+01,  1.334375e+01,  0, 0, 0, 0])
         # self.ay = np.array([0,0,0,0,0,0,0.1,0.5])
         self.ay = np.array([0,0,0,0,0,0,0,3])
